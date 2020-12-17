@@ -1,0 +1,135 @@
+#pytorch # ok
+#torchvision # ok
+#keras # ok
+#keras-preprocessing # ok
+#jupyter notebook # ok
+#matplotlib # ok
+#tqdm # ok
+#scikit-learn # ok
+#scikit-image # ok
+#fastai
+#opencv # ok
+#pyenv
+
+#docker build -t pollenm/deeplearning_debaleena .
+FROM pollenm/deeplearning_cuda_10_1 as step_cuda
+###FROM ubuntu:18.04 as steep_os
+LABEL maintainer "NVIDIA CORPORATION <cudatools@nvidia.com>"
+
+###RUN apt-get update && apt-get install -y --no-install-recommends \
+###gnupg2 curl ca-certificates && \
+###    curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub | apt-key add - && \
+###    echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda.list && \
+###    echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list && \
+###    apt-get purge --autoremove -y curl && \
+###rm -rf /var/lib/apt/lists/*
+
+###ENV CUDA_VERSION 10.1.243
+
+###ENV CUDA_PKG_VERSION 10-1=$CUDA_VERSION-1
+
+# For libraries in the cuda-compat-* package: https://docs.nvidia.com/cuda/eula/index.html#attachment-a
+###RUN apt-get update && apt-get install -y --no-install-recommends \
+###        cuda-cudart-$CUDA_PKG_VERSION \
+###cuda-compat-10-1 && \
+###ln -s cuda-10.1 /usr/local/cuda && \
+###apt-get install -y --no-install-recommends cuda-libraries-$CUDA_PKG_VERSION && \
+###    rm -rf /var/lib/apt/lists/*
+
+# Required for nvidia-docker v1
+###RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && \
+###    echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf
+
+###ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+###ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
+
+# nvidia-container-runtime
+###ENV NVIDIA_VISIBLE_DEVICES all
+###ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+###ENV NVIDIA_REQUIRE_CUDA "cuda>=10.1 brand=tesla,driver>=384,driver<385 brand=tesla,driver>=396,driver<397 brand=tesla,driver>=410,driver<411"
+
+FROM step_cuda as step_tensorflow
+# tensorflow-gpu
+RUN apt update 
+RUN apt install -y python3-dev python3-pip
+RUN pip3 install --user --upgrade tensorflow-gpu
+
+#libcudnn7
+###RUN apt-get install libcudnn7=7.6.4.38-1+cuda10.1
+
+# vim
+#RUN apt get install -y vim 
+
+FROM step_tensorflow  as steep_python
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update && apt-get install -y \
+	python3-opencv ca-certificates python3-dev git wget sudo  \
+	cmake ninja-build && \
+  rm -rf /var/lib/apt/lists/*
+RUN ln -sv /usr/bin/python3 /usr/bin/python
+#
+ENV PATH="/home/appuser/.local/bin:${PATH}"
+RUN wget https://bootstrap.pypa.io/get-pip.py && \
+	python3 get-pip.py && \
+	rm get-pip.py
+
+FROM steep_python as steep_pytorch
+RUN pip install tensorboard
+RUN pip install torch==1.6 torchvision==0.7 -f https://download.pytorch.org/whl/cu101/torch_stable.html
+RUN pip install tqdm
+
+RUN pip install 'git+https://github.com/facebookresearch/fvcore'
+
+FROM steep_pytorch as steep_keras
+RUN pip3 install keras keras-preprocessing
+
+FROM steep_keras as steep_jupyter_notebook
+RUN pip install jupyterlab
+
+FROM steep_jupyter_notebook as steep_matplotlib
+RUN python -m pip install -U pip
+RUN python -m pip install -U matplotlib
+
+FROM steep_matplotlib as steep_scikit
+RUN pip install -U scikit-learn
+RUN pip install -U scikit-image
+
+FROM steep_scikit as steep_fastai
+#RUN git clone https://github.com/fastai/fastai
+#RUN pip install -e "fastai[dev]"
+#ENV PATH="/root/miniconda3/bin:${PATH}"
+#ARG PATH="/root/miniconda3/bin:${PATH}"
+#RUN apt-get update
+#RUN apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+#RUN wget \
+#    https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+#    && mkdir /root/.conda \
+#    && bash Miniconda3-latest-Linux-x86_64.sh -b \
+#    && rm -f Miniconda3-latest-Linux-x86_64.sh 
+#RUN conda --version
+#RUN conda install -c fastai -c pytorch -c anaconda fastai gh anaconda
+RUN pip install -U fastai
+
+FROM steep_fastai as steep_pyenv
+RUN apt-get -y update && apt-get -y upgrade
+RUN apt-get install -y curl
+#RUN curl -L https://raw.githubusercontent.com/pyenv/pyenv-installer/master/bin/pyenv-installer \
+#    | bash
+#ENV PATH=$HOME/.pyenv/bin:$PATH
+#RUN git clone git://github.com/pyenv/pyenv.git /tmp/pyenv && \
+#    cd /tmp/pyenv/plugins/python-build && \
+#    ./install.sh && \
+#    rm -rf /tmp/pyenv
+
+#RUN python-build $PYTHON_VERSION /usr/local/
+
+RUN git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+RUN echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+RUN echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.bash_profile
+
+RUN pip install pipenv
+
+# Install cudatoolskit
+RUN apt-get -y install nvidia-cuda-toolkit
+

@@ -1,0 +1,12 @@
+version: "2.3"
+services:
+  deeplearning_debaleena:
+    container_name: deeplearning_debaleena
+    environment:
+      #- DISPLAY=$DISPLAY
+      - NVIDIA_VISIBLE_DEVICES=all
+    entrypoint: "tail -f /dev/null" 
+
+    volumes:
+        #- /home/docker/deeplearning_cuda_10/jenkins_agent/ws/:/home/jenkins/
+      - /home/deeplearning_script/:/home/scripts/
