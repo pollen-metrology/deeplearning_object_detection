@@ -77,4 +77,4 @@ RUN echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)
 RUN pip install pipenv
 
 # Install cudatoolskit
-RUN apt-get -y install nvidia-cuda-toolkit
+#RUN apt-get -y install nvidia-cuda-toolkit # probleme nvidia-smi
