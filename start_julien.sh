@@ -19,10 +19,10 @@
   -it \
   -d \
   --gpus all \
-  --name "deeplearning_object_detection" \
+  --name "deeplearning_object_detection_julien" \
   --restart always \
-  -v /home/dmisra\@POLLEN-METROLOGY.local/:/home/scripts/ \
-  -p 8091:8091 \
+  -v /home/jbaderot\@POLLEN-METROLOGY.local/Object_detection/:/home/scripts/ \
+  -p 8092:8091 \
   --entrypoint="/bin/bash" \
   pollenm/deeplearning_object_detection
 
